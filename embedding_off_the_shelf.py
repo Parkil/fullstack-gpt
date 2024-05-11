@@ -7,12 +7,12 @@ from langchain_openai.chat_models import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain.embeddings import CacheBackedEmbeddings
 
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-print(os.environ.get('OPENAI_API_KEY'))
+# from dotenv import load_dotenv
+# import os
+#
+# load_dotenv()
+#
+# print(os.environ.get('OPENAI_API_KEY'))
 
 llm = ChatOpenAI()
 
@@ -34,6 +34,8 @@ embeddings = OpenAIEmbeddings()
 cache_embeddings = CacheBackedEmbeddings.from_bytes_store(embeddings, cache_dir)
 
 vectorstore = Chroma.from_documents(docs, cache_embeddings)
+
+retriever=vectorstore.as_retriever()
 
 # stuff: 검색된 모든 doc 을 합쳐서 prompt 에 입력
 # refine: 검색된 doc 마다 prompt 를 던져서 답을 얻어 내는 방식
