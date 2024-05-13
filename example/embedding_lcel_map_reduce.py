@@ -13,7 +13,7 @@ load_dotenv()
 
 llm = ChatOpenAI(temperature=0.1)
 
-cache_dir = LocalFileStore("./.cache")
+cache_dir = LocalFileStore("../.cache")
 
 # chunk_size(문자를 분할할 때 크기), chunk_overlap(분할되는 이전/다음 chunk 의 데이터를 현재 데이터에 덧붙임, chunk 마다 중복되는 부분이 있을 수 있음)
 # splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=50)
@@ -23,7 +23,7 @@ cache_dir = LocalFileStore("./.cache")
 
 splitter = CharacterTextSplitter.from_tiktoken_encoder(chunk_size=600, chunk_overlap=100, separator="\n")
 
-loader = UnstructuredFileLoader("./files/sample.txt")
+loader = UnstructuredFileLoader("../files/sample.txt")
 docs = loader.load_and_split(text_splitter=splitter)
 embeddings = OpenAIEmbeddings()
 

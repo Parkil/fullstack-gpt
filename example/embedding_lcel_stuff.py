@@ -1,22 +1,20 @@
-from langchain.document_loaders import UnstructuredFileLoader
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.vectorstores import Chroma
-from langchain.storage import LocalFileStore
-from langchain.chains import RetrievalQA
-from langchain_openai.chat_models import ChatOpenAI
-from langchain_openai.embeddings import OpenAIEmbeddings
+
+from dotenv import load_dotenv
 from langchain.embeddings import CacheBackedEmbeddings
+from langchain.prompts import ChatPromptTemplate
+from langchain.schema.runnable import RunnablePassthrough
+from langchain.storage import LocalFileStore
+from langchain.text_splitter import CharacterTextSplitter
+from langchain_community.document_loaders import UnstructuredFileLoader
+from langchain_community.vectorstores import FAISS
+from langchain_openai import ChatOpenAI
+from langchain_openai.embeddings import OpenAIEmbeddings
 
-# from dotenv import load_dotenv
-# import os
-#
-# load_dotenv()
-#
-# print(os.environ.get('OPENAI_API_KEY'))
+load_dotenv()
 
-llm = ChatOpenAI()
+llm = ChatOpenAI(temperature=0.1)
 
-cache_dir = LocalFileStore("./.cache")
+cache_dir = LocalFileStore("../.cache")
 
 # chunk_size(문자를 분할할 때 크기), chunk_overlap(분할되는 이전/다음 chunk 의 데이터를 현재 데이터에 덧붙임, chunk 마다 중복되는 부분이 있을 수 있음)
 # splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=50)
@@ -26,23 +24,26 @@ cache_dir = LocalFileStore("./.cache")
 
 splitter = CharacterTextSplitter.from_tiktoken_encoder(chunk_size=600, chunk_overlap=100, separator="\n")
 
-loader = UnstructuredFileLoader("./files/sample.txt")
+loader = UnstructuredFileLoader("../files/sample.txt")
 docs = loader.load_and_split(text_splitter=splitter)
 embeddings = OpenAIEmbeddings()
 
 # cache 에 데이터 가 없으면 OpenAI 를 통해서 embedding 하지만 cache 에 값이 있으면 cache 의 값을 불러 온다
 cache_embeddings = CacheBackedEmbeddings.from_bytes_store(embeddings, cache_dir)
 
-vectorstore = Chroma.from_documents(docs, cache_embeddings)
+vectorstore = FAISS.from_documents(docs, cache_embeddings)
 
-retriever=vectorstore.as_retriever()
+retriever = vectorstore.as_retriever()
 
-# stuff: 검색된 모든 doc 을 합쳐서 prompt 에 입력
-# refine: 검색된 doc 마다 prompt 를 던져서 답을 얻어 내는 방식
-# map reduce: 검색된 doc 을 각각 요약 해서 prompt 에 입력
-# map re-rank: 검색된 doc 마다 점수를 부여 해서(prompt 에 질문) 가장 높은 점수를 가진 doc 과 관련된 답변을 반환
-embedd_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=vectorstore.as_retriever())
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful assistant. Answer questions using only the following context. "
+               "If you don`t know the answer just say you don`t know, don`t make it up:\n\n{context}"),
+    ("human", "{question}")
+])
 
-result = embedd_chain.run("Describe Victory Mansions")
+# RunnablePassthrough: 이전에는 prop 자동 할당 기능을 하는 걸로 알았는데 이제 보니 chain 에 값을 전달해주는 기능을 함
+lcel_chain = {"context": retriever, "question": RunnablePassthrough()} | prompt | llm
 
+result = lcel_chain.invoke("What is Victory Mansions?")
 print(result)
+
