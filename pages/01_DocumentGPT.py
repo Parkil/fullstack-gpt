@@ -1,5 +1,6 @@
 import streamlit as st
-from langchain_core.prompts import ChatPromptTemplate
+from langchain.memory import ConversationSummaryBufferMemory, ConversationKGMemory
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_openai import ChatOpenAI
 from streamlit.runtime.uploaded_file_manager import UploadedFile
@@ -15,8 +16,23 @@ st.set_page_config(
 
 init_session_singleton('messages', [])
 
-
 llm = ChatOpenAI(temperature=0.1, streaming=True, callbacks=[ChatCallBackHandler()])
+
+
+@st.cache_resource
+def init_memory():
+    print('init_memory called')
+    return ConversationSummaryBufferMemory(
+        llm=llm,
+        max_token_limit=120,
+        memory_key="chat_history",
+        return_messages=True,
+    )
+
+
+# @st.cache_resource 처리시 inline 으로 직접 호출 하는 경우 오류가 발생 하는 경우가 있다
+# 특히 함수 내부 에서 @st.cache_resource 에 지정된 함수를 직접 호출 하는 경우 그런듯
+memory = init_memory()
 
 
 # st.cache_data : 직렬화 가 가능한 값 (기본형 or 객체 구조를 가지는 반환값) 을 저장할 때 사용
@@ -39,8 +55,22 @@ prompt = ChatPromptTemplate.from_messages([
             
         Context: {context}
     """),
+    MessagesPlaceholder(variable_name="chat_history"),
     ("human", "{question}")
 ])
+
+
+def load_memory(input_param):
+    print(memory.load_memory_variables({}))
+    print("""\n\n""")
+    return memory.load_memory_variables({})["chat_history"]
+
+
+def invoke_chain(question):
+    chain_result = chain.invoke(question)
+    memory.save_context({"input": question}, {"output": chain_result.content})
+    return chain_result
+
 
 st.title('DocumentGPT')
 
@@ -72,13 +102,10 @@ if file:
         chain = {
                     "context": retriever | RunnableLambda(format_docs),
                     "question": RunnablePassthrough(),
-                } | prompt | llm
+                } | RunnablePassthrough.assign(chat_history=load_memory) | prompt | llm
 
         with st.chat_message('ai'):
-            resp = chain.invoke(message)
-
-        # send_message(resp.content, "ai")
-
+            resp = invoke_chain(message)
 
 else:
     st.session_state['messages'] = []

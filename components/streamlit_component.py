@@ -24,6 +24,3 @@ def paint_history():
     for message in st.session_state['messages']:
         send_message(message['message'], message['role'], save=False)
 
-
-def test111():
-    return st.empty()
