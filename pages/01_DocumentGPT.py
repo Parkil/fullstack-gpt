@@ -20,6 +20,7 @@ init_session_singleton('messages', [])
 
 llm = ChatOpenAI(temperature=0.1, streaming=True, callbacks=[ChatCallBackHandler()])
 
+
 # 정상적인 케이스 Data {'chat_history': [SystemMessage(content='The human asks who Winston is, and the AI explains that
 # Winston is a character in George Orwell\'s novel "1984." Winston is a thirty-nine-year-old man who works at the
 # Records Department in the Ministry of Truth, altering historical records to fit the propaganda needs of the
@@ -35,6 +36,8 @@ llm = ChatOpenAI(temperature=0.1, streaming=True, callbacks=[ChatCallBackHandler
 #
 # ollama mistral 에서는 비 정상적인 케이스가 나온적이 없는데 open_ai 에서는 비정상적인 케이스가 종종 발견된다 원인은 아직 파악이
 # 안되었음
+#
+# message 를 확인해 보니까 두번째 질문에서 llm 요약이 실행되지 않는 듯 하다
 @st.cache_resource
 def init_memory():
     print('init_memory called')
@@ -49,19 +52,6 @@ def init_memory():
 # @st.cache_resource 처리시 inline 으로 직접 호출 하는 경우 오류가 발생 하는 경우가 있다
 # 특히 함수 내부 에서 @st.cache_resource 에 지정된 함수를 직접 호출 하는 경우 그런듯
 memory = init_memory()
-
-
-@st.cache_resource
-def test():
-    return ConversationChain(
-        llm=llm,
-        # We set a very low max_token_limit for the purposes of testing.
-        memory=ConversationSummaryBufferMemory(llm=llm, max_token_limit=40),
-        verbose=True,
-    )
-
-
-conversation_with_summary = test()
 
 
 # st.cache_data : 직렬화 가 가능한 값 (기본형 or 객체 구조를 가지는 반환값) 을 저장할 때 사용
@@ -89,7 +79,7 @@ prompt = ChatPromptTemplate.from_messages([
 
 
 def load_memory(input_param):
-    print(memory.load_memory_variables({}))
+    print('memory : ',memory.load_memory_variables({}))
     print("""\n\n""")
     return memory.load_memory_variables({})["chat_history"]
 
@@ -97,6 +87,8 @@ def load_memory(input_param):
 def invoke_chain(question):
     chain_result = chain.invoke(question)
     memory.save_context({"input": question}, {"output": chain_result.content})
+    print('chain_result : ', chain_result)
+    print("""\n\n""")
     return chain_result
 
 
@@ -132,8 +124,9 @@ if file:
                     "question": RunnablePassthrough(),
                 } | RunnablePassthrough.assign(chat_history=load_memory) | prompt | llm
 
+        # open ai 의 경우 ConversationSummaryBufferMemory 의 llm 요약 데이터 가 그대로 화면에 표시가 되는데
+        # 이게 표시될 때 별도의 log 가 쌓이지 않는 것으로 보아 lang chain or streamlit 에서 의도된 행동 이라고 보아야 할듯
         with st.chat_message('ai'):
-            # resp = conversation_with_summary.predict(input=message)
             resp = invoke_chain(message)
 
 else:
