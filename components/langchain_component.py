@@ -38,6 +38,6 @@ def embed_file(file: UploadedFile, file_dir: str, embedding_sir: str, model_type
 def __embedding_factory(model_type: EmbeddingModel):
     if model_type == EmbeddingModel.OPEN_AI:
         return OpenAIEmbeddings()
-    elif model_type == EmbeddingModel.OLLAMA:
-        return OllamaEmbeddings(model="mistral:latest")
+    else:
+        return OllamaEmbeddings(model=model_type.model_name)
 
