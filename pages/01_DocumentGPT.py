@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from components.chat_callback_handler import ChatCallBackHandler
-from components.langchain_component import embed_file
+from components.langchain_component import embed_file, format_docs
 from components.streamlit_component import init_session_singleton, send_message, paint_history
 from enums.embedding_model import EmbeddingModel
 
@@ -60,11 +60,6 @@ memory = init_memory()
 @st.cache_resource(show_spinner="Embedding file...")
 def embed_file_wrapper(upload_file: UploadedFile):
     return embed_file(upload_file, './.cache/files', './.cache/embeddings', EmbeddingModel.OPEN_AI)
-
-
-def format_docs(docs):
-    return "\n\n".join(document.page_content for document in docs)
-
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", """
