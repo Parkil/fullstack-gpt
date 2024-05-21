@@ -1,6 +1,27 @@
 from langchain_core.prompts import ChatPromptTemplate
 
 
+def find_question_function_prompt() -> ChatPromptTemplate:
+    return ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """
+                    You are a helpful assistant that is role playing as a teacher.
+
+                    Based ONLY on the following context make 10 questions to test the user's knowledge about the text.
+
+                    Each question should have 4 answers, three of them must be incorrect and one should be correct.
+
+                    Your turn!
+
+                    Context: {context}
+                """,
+            )
+        ]
+    )
+
+
 def find_question_prompt() -> ChatPromptTemplate:
     return ChatPromptTemplate.from_messages(
         [

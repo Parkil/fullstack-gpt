@@ -7,4 +7,5 @@ class JsonOutputParser(BaseOutputParser):
 
     def parse(self, text: str):
         text = text.replace("```", "").replace("json", "")
+        print(text)
         return json.loads(text)
