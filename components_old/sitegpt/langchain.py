@@ -4,6 +4,8 @@ from typing import List
 from langchain_community.document_loaders import AsyncChromiumLoader, SitemapLoader
 from langchain_community.document_transformers import Html2TextTransformer
 from langchain_text_splitters import CharacterTextSplitter
+from langchain_community.vectorstores.faiss import FAISS
+from langchain_community.embeddings import OpenAIEmbeddings
 
 
 def async_chromium_loader(url: str):
@@ -25,6 +27,7 @@ def async_chromium_loader(url: str):
 
 [테스트 시 사용할 URL]
 https://pypi.org/e1.sitemap.xml
+django-adminstats
 '''
 
 
@@ -35,7 +38,9 @@ def sitemap_loader(url: str, filter_url_list: List[str]):
     splitter = CharacterTextSplitter.from_tiktoken_encoder(chunk_size=800, chunk_overlap=200, separator='  ')
     loader = SitemapLoader(url, parsing_function=parse_page, restrict_to_same_domain=False, filter_urls=filter_url_list)
     loader.requests_per_second = 1
-    return loader.load_and_split(text_splitter=splitter)
+    docs = loader.load_and_split(text_splitter=splitter)
+    vector_store = FAISS.from_documents(docs, OpenAIEmbeddings())
+    return vector_store.as_retriever()
 
 
 '''

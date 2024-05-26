@@ -8,9 +8,9 @@ from langchain_core.runnables.utils import Input, Output
 from langchain_openai import ChatOpenAI
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-from components.langchain_component import find_doc_list_from_file
-from components.quizgpt.function_schema import quiz_function_schema
-from components.quizgpt.langchain import wiki_search, invoke_question_function_chain
+from components_old.common.langchain_component import find_doc_list_from_file
+from components_old.quizgpt.function_schema import quiz_function_schema
+from components_old.quizgpt.langchain import wiki_search, invoke_question_function_chain
 
 st.set_page_config(
     page_title="QuizGPT",

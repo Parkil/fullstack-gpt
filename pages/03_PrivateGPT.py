@@ -2,9 +2,9 @@ import streamlit as st
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
-from components.privategpt.streamlit_component import init_llm, init_memory, embed_file_wrapper
-from components.privategpt.util import format_docs
-from components.streamlit_component import init_session_singleton, send_message, paint_history
+from components_old.privategpt.streamlit_component import init_llm, init_memory, embed_file_wrapper
+from components_old.privategpt.util import format_docs
+from components_old.streamlit_component import init_session_singleton, send_message, paint_history
 
 st.set_page_config(
     page_title="PrivateGPT",

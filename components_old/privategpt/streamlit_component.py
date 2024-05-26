@@ -2,8 +2,8 @@ from langchain.memory import ConversationSummaryBufferMemory
 from langchain_community.chat_models import ChatOllama
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-from components.chat_callback_handler import ChatCallBackHandler
-from components.langchain_component import embed_file
+from components_old.chat_callback_handler import ChatCallBackHandler
+from components_old.common.langchain_component import embed_file
 from enums.embedding_model import EmbeddingModel
 
 import streamlit as st

@@ -1,14 +1,13 @@
 import streamlit as st
-from langchain.chains.conversation.base import ConversationChain
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_openai import ChatOpenAI
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-from components.chat_callback_handler import ChatCallBackHandler
-from components.langchain_component import embed_file, format_docs
-from components.streamlit_component import init_session_singleton, send_message, paint_history
+from components_old.chat_callback_handler import ChatCallBackHandler
+from components_old.common.langchain_component import embed_file, format_docs
+from components_old.streamlit_component import init_session_singleton, send_message, paint_history
 from enums.embedding_model import EmbeddingModel
 
 st.set_page_config(
@@ -60,6 +59,7 @@ memory = init_memory()
 @st.cache_resource(show_spinner="Embedding file...")
 def embed_file_wrapper(upload_file: UploadedFile):
     return embed_file(upload_file, './.cache/files', './.cache/embeddings', EmbeddingModel.OPEN_AI)
+
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", """

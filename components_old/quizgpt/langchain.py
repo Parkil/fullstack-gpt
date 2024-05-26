@@ -5,9 +5,9 @@ from langchain_community.retrievers import WikipediaRetriever
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 
-from components.langchain_component import format_docs
-from components.quizgpt.json_output_parser import JsonOutputParser
-from components.quizgpt.prompt import find_question_prompt, find_formatting_prompt, find_question_function_prompt
+from components_old.common.langchain_component import format_docs
+from components_old.quizgpt.json_output_parser import JsonOutputParser
+from components_old.quizgpt.prompt import find_question_prompt, find_formatting_prompt, find_question_function_prompt
 
 
 def invoke_question_format_chain(docs: List[Document], llm: ChatOpenAI):

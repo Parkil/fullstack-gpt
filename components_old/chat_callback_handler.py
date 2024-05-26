@@ -1,7 +1,7 @@
 import streamlit
 from langchain_core.callbacks import BaseCallbackHandler
 
-from components.streamlit_component import save_message
+from components_old.streamlit_component import save_message
 
 
 # st.empty() 로 호출할 경우 set_page_config() can only be called once per app page
