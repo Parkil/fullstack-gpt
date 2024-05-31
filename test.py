@@ -1,58 +1,133 @@
-import time
-
-from dotenv import load_dotenv
-from langchain.memory import ConversationSummaryBufferMemory
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.schema.runnable import RunnablePassthrough
+import streamlit as st
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_openai import ChatOpenAI
 
-load_dotenv()
+from components_old.sitegpt.langchain import sitemap_loader
 
-llm = ChatOpenAI(temperature=0.1)
+from langchain.prompts import ChatPromptTemplate
 
-# memory_key : template 에 입력될 memory 정보를 mapping 하는 key
-memory = ConversationSummaryBufferMemory(
-    llm=llm,
-    max_token_limit=120,
-    memory_key="chat_history",
-    return_messages=True,
+# 수정사항
+# 1. history 추가
+# 2. memory 추가
+st.set_page_config(
+    page_title="SiteGPT",
+    page_icon="🖥️",
 )
 
-# MessageHolder: 위 template 의 {chat_history} 와 동일한 역할을 수행
-chat_prompt_template = ChatPromptTemplate.from_messages([
-    ("system", "You are helpful AI taking to a human"),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{question}"),
-])
+
+@st.cache_resource
+def init_llm():
+    # functions 에 지정한 function schema 의 형식과 배치 되는 결과 형식을 prompt 에 입력할 경우 prompt 에 지정된 형식이 우선 한다
+    # context window: llm prompt 에 들어 가는 token 의 크기 gpt-3.5-turbo-1106 의 경우 16,385 token 을 1개 prompt 에 보낼수 있다
+    return ChatOpenAI(temperature=0.1)
 
 
-def load_memory(input_param):
-    print(memory.load_memory_variables({}))
-    print("""\n\n""")
-    return memory.load_memory_variables({})["chat_history"]
+@st.cache_resource(show_spinner="Fetching document by WebSite...")
+def find_docs(url_param: str):
+    return sitemap_loader(url_param, [r"^(.*\/django.*\/)"])
 
 
-# RunnablePassthrough : chain 이 실행될 때 chain 에 들어 가는 변수중 일부를 자동 할당
-chain = RunnablePassthrough.assign(chat_history=load_memory) | chat_prompt_template | llm
+llm = init_llm()
+
+answers_prompt = ChatPromptTemplate.from_template(
+    """
+    Using ONLY the following context answer the user's question. If you can't just say you don't know, don't make anything up.
+
+    Then, give a score to the answer between 0 and 5.
+    If the answer answers the user question the score should be high, else it should be low.
+    Make sure to always include the answer's score even if it's 0.
+    Context: {context}
+
+    Examples:
+
+    Question: How far away is the moon?
+    Answer: The moon is 384,400 km away.
+    Score: 5
+
+    Question: How far away is the sun?
+    Answer: I don't know
+    Score: 0
+
+    Your turn!
+    Question: {question}
+"""
+)
 
 
-def invoke_chain(question):
-    chain_result = chain.invoke({
+def get_answers(inputs):
+    docs = inputs["docs"]
+    question = inputs["question"]
+    answers_chain = answers_prompt | llm
+    return {
         "question": question,
+        "answers": [
+            {
+                "answer": answers_chain.invoke(
+                    {"question": question, "context": doc.page_content}
+                ),
+                "source": doc.metadata["source"],
+                "date": 'None',
+            } for doc in docs
+        ]
+    }
+
+
+choose_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
+            Use ONLY the following pre-existing answers to answer the user's question.
+            Use the answers that have the highest score (more helpful) and favor the most recent ones.
+            Cite sources and return the sources of the answers as they are, do not change them.
+            Answers: {answers}
+            """,
+        ),
+        ("human", "{question}"),
+    ]
+)
+
+
+def choose_answer(inputs):
+    question = inputs["question"]
+    answers = inputs["answers"]
+    print(question)
+    print(answers)
+
+    choose_chain = choose_prompt | llm
+
+    condensed = "\n\n".join(f"Answer: {answer['answer']}\nSource: {answer['source']}\ndate: {answer['date']}\n"
+                            for answer in answers)
+    return choose_chain.invoke({
+        "question": question,
+        "answers": condensed
     })
 
-    memory.save_context({"input": question}, {"output": chain_result.content})
 
-    print('chain_result : ', chain_result)
-    print("""\n\n""")
-    return chain_result
+st.title('SiteGPT')
 
+st.markdown(
+    """
+    Ask Questions about the content of a website.
 
-invoke_chain("My name is Test")
-time.sleep(2)
-invoke_chain("Who are you?")
-time.sleep(2)
-invoke_chain("What are the pokemons?")
-time.sleep(2)
-invoke_chain("What are the pikachu?")
+    Start by writing URL of the website on the sidebar
+    """
+)
 
+with st.sidebar:
+    url = st.text_input("Write down a URL", placeholder="https://www.google.com")
+
+if url:
+    if ".xml" not in url:
+        with st.sidebar:
+            st.error("Please write down a SiteMap URL")
+    else:
+        retriever = find_docs(url)
+        query = st.text_input("Ask question to the website")
+
+        if query:
+            chain = ({"docs": retriever, "question": RunnablePassthrough()} | RunnableLambda(get_answers)
+                     | RunnableLambda(choose_answer))
+
+            result = chain.invoke(query)
+            st.write(result.content)
