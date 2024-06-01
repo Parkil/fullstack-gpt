@@ -20,7 +20,8 @@ def pick_answer_prompt() -> ChatPromptTemplate:
 
 def find_answer_prompt() -> ChatPromptTemplate:
     system_prompt: str = """
-        Using ONLY the following context answer the user's question. If you can't just say you don't know, don't make anything up.
+        Using ONLY the following context answer the user's question. If you can't just say you don't know,
+        don't make anything up.
     
         Then, give a score to the answer between 0 and 5.
         If the answer answers the user question the score should be high, else it should be low.
