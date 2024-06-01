@@ -1,6 +1,6 @@
 import streamlit as st
 
-from components.pages.common.session import append_session, get_session_or_init
+from components.pages.common.session import append_session, get_session_or_init, set_session
 
 
 def print_message(message: str, role: str):
@@ -22,4 +22,5 @@ def print_message_history(message_group_key: str):
         print_message(message['message'], message['role'])
 
 
-
+def clear_message_history(message_group_key: str):
+    set_session(f'{message_group_key}_messages', [])

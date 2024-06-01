@@ -1,55 +1,46 @@
 import streamlit as st
 from langchain.memory import ConversationSummaryBufferMemory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_openai import ChatOpenAI
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-from components_old.chat_callback_handler import ChatCallBackHandler
-from components_old.common.langchain_component import embed_file, format_docs
-from components_old.streamlit_component import init_session_singleton, send_message, paint_history
-from enums.embedding_model import EmbeddingModel
+from components.langchain.callback_handler.streaming_chat_callback_handler import StreamingChatCallBackHandler
+from components.langchain.file_parser import parse_by_file
+from components.langchain.init_llm import initialize_open_ai_llm
+from components.langchain.init_memory import initialize_conversation_memory
+from components.pages.common.chat_message import print_message, print_message_history, print_message_and_save, \
+    save_message, clear_message_history
+from components.pages.documentgpt.prompt import find_prompt
+from components_old.common.langchain_component import format_docs
 
 st.set_page_config(
     page_title="DocumentGPT",
     page_icon="📃",
 )
 
-init_session_singleton('messages', [])
 
-llm = ChatOpenAI(temperature=0.1, streaming=True, callbacks=[ChatCallBackHandler()])
-
-
-# 정상적인 케이스 Data {'chat_history': [SystemMessage(content='The human asks who Winston is, and the AI explains that
-# Winston is a character in George Orwell\'s novel "1984." Winston is a thirty-nine-year-old man who works at the
-# Records Department in the Ministry of Truth, altering historical records to fit the propaganda needs of the
-# totalitarian regime led by Big Brother. Winston lives in Victory Mansions, a run-down building with issues like a
-# non-functioning lift due to electricity cuts. The human then asks who Big Brother is, and the AI describes Big
-# Brother as the omnipresent authoritarian leader of the regime, used as a propaganda tool to maintain control
-# through fear and manipulation.')]}
-#
-# 비 정상적인 케이스 data {'chat_history': [HumanMessage(content='who is winston?'), AIMessage(content='Winston is a
-# character in the context provided. He is described as a man who is thirty-nine years old, with fair hair,
-# a sanguine face, and a meagre body. He lives in Victory Mansions and works at the Records Department. Winston is
-# shown to have a sense of uneasiness and fear, especially when encountering certain individuals.')]}
-#
-# ollama mistral 에서는 비 정상적인 케이스가 나온적이 없는데 open_ai 에서는 비정상적인 케이스가 종종 발견된다 원인은 아직 파악이
-# 안되었음
-#
-# message 를 확인해 보니까 두번째 질문에서 llm 요약이 실행되지 않는 듯 하다
 @st.cache_resource
-def init_memory():
-    print('init_memory called')
-    return ConversationSummaryBufferMemory(
-        llm=llm,
-        max_token_limit=120,
-        memory_key="chat_history",
-        return_messages=True,
-    )
+def init_open_ai_streaming() -> ChatOpenAI:
+    return initialize_open_ai_llm(streaming=True, callbacks=[StreamingChatCallBackHandler()])
 
 
-# @st.cache_resource 처리시 inline 으로 직접 호출 하는 경우 오류가 발생 하는 경우가 있다
-# 특히 함수 내부 에서 @st.cache_resource 에 지정된 함수를 직접 호출 하는 경우 그런듯
+@st.cache_resource
+def init_open_ai() -> ChatOpenAI:
+    return initialize_open_ai_llm()
+
+
+streaming_llm = init_open_ai_streaming()
+non_streaming_llm = init_open_ai()
+
+
+# ConversationSummaryBufferMemory 에서 요약을 수행 하는 llm 설정에 callback 이 설정 되어 있을 경우
+# 요약 정보를 얻기 위해 llm 을 수행 하면 callback 이 같이 작동 한다
+@st.cache_resource
+def init_memory() -> ConversationSummaryBufferMemory:
+    return initialize_conversation_memory(chat_model=non_streaming_llm,
+                                          memory_key='chat_history', return_messages=True)
+
+
 memory = init_memory()
 
 
@@ -57,33 +48,17 @@ memory = init_memory()
 # st.cache_resource : 직렬화 가 불가능한 값 (DB datasource, M/L Model ...) 을 저장할 때 사용
 # function input param 이 변경될 때에만 다시 실행 된다
 @st.cache_resource(show_spinner="Embedding file...")
-def embed_file_wrapper(upload_file: UploadedFile):
-    return embed_file(upload_file, './.cache/files', './.cache/embeddings', EmbeddingModel.OPEN_AI)
+def find_docs_by_file(upload_file: UploadedFile):
+    return parse_by_file(upload_file, './.cache/files', './.cache/embeddings')
 
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", """
-        Answer the question using ONLY the following context. 
-        If you don't know the answer just say you don't know. DON'T make anything up.
-            
-        Context: {context}
-    """),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{question}")
-])
-
-
-def load_memory(input_param):
-    print('memory : ',memory.load_memory_variables({}))
-    print("""\n\n""")
+def __load_memory(_):
     return memory.load_memory_variables({})["chat_history"]
 
 
-def invoke_chain(question):
-    chain_result = chain.invoke(question)
+def __invoke_chain(chain_param, question):
+    chain_result = chain_param.invoke(question)
     memory.save_context({"input": question}, {"output": chain_result.content})
-    print('chain_result : ', chain_result)
-    print("""\n\n""")
     return chain_result
 
 
@@ -91,9 +66,9 @@ st.title('DocumentGPT')
 
 st.markdown("""
     Welcome!
-    
+
     Use this chatbot to ask questions to an AI about your files!
-    
+
     Upload your files on sidebar
 """)
 
@@ -101,15 +76,16 @@ with st.sidebar:
     file = st.file_uploader("Upload a .txt, or .pdf or .docx file", type=['txt', 'pdf', 'docx'])
 
 # if file 자체가 일종의 react 의 state 처럼 작동 한다
+message_group_key = 'document_gpt'
 if file:
-    retriever = embed_file_wrapper(file)
-    send_message('I`m ready! Ask Away', 'ai', save=False)
-    paint_history()
+    retriever = find_docs_by_file(file)
+    print_message('I`m ready! Ask Away', 'ai')
+    print_message_history(message_group_key)
 
     message = st.chat_input("Ask anything about your file")
 
     if message:
-        send_message(message, 'human')
+        print_message_and_save(message_group_key, message, 'human')
 
         # chain 을 사용 하면
         # template.format_messages(context=docs, question=message) 나 retriever.invoke(message)
@@ -117,12 +93,11 @@ if file:
         chain = {
                     "context": retriever | RunnableLambda(format_docs),
                     "question": RunnablePassthrough(),
-                } | RunnablePassthrough.assign(chat_history=load_memory) | prompt | llm
+                } | RunnablePassthrough.assign(chat_history=__load_memory) | find_prompt() | streaming_llm
 
-        # open ai 의 경우 ConversationSummaryBufferMemory 의 llm 요약 데이터 가 그대로 화면에 표시가 되는데
-        # 이게 표시될 때 별도의 log 가 쌓이지 않는 것으로 보아 lang chain or streamlit 에서 의도된 행동 이라고 보아야 할듯
         with st.chat_message('ai'):
-            resp = invoke_chain(message)
+            resp = __invoke_chain(chain, message)
 
+        save_message(message_group_key, resp.content, 'ai')
 else:
-    st.session_state['messages'] = []
+    clear_message_history(message_group_key)
