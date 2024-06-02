@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from components.langchain.callback_handler.streaming_chat_callback_handler import StreamingChatCallBackHandler
-from components.langchain.file_parser import parse_by_file
+from components.langchain.file_parser import parse_by_file_embedding
 from components.langchain.init_llm import initialize_open_ai_llm
 from components.langchain.init_memory import initialize_conversation_memory
 from components.pages.common.chat_message import print_message, print_message_history, print_message_and_save, \
@@ -45,7 +45,7 @@ memory = init_memory()
 # function input param 이 변경될 때에만 다시 실행 된다
 @st.cache_resource(show_spinner="Embedding file...")
 def find_docs_by_file(upload_file: UploadedFile):
-    return parse_by_file(upload_file, './.cache/files', './.cache/embeddings')
+    return parse_by_file_embedding(upload_file, './.cache/files', './.cache/embeddings')
 
 
 def __load_memory(_):

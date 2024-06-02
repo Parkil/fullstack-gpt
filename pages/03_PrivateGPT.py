@@ -5,7 +5,7 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from components.langchain.callback_handler.streaming_chat_callback_handler import StreamingChatCallBackHandler
-from components.langchain.file_parser import parse_by_file
+from components.langchain.file_parser import parse_by_file_embedding
 from components.langchain.init_llm import initialize_ollama_llm
 from components.langchain.init_memory import initialize_conversation_memory
 from components.pages.common.chat_message import print_message, print_message_history, print_message_and_save, \
@@ -46,7 +46,7 @@ def init_memory_local(model_short_name: str) -> ConversationSummaryBufferMemory:
 # 다른 llm model 로 embedding 된 cache 를 가져 오려고 하면 AssertError 가 발생 한다
 @st.cache_resource(show_spinner="Embedding file...")
 def find_docs_by_file(upload_file: UploadedFile, model_short_name: str):
-    return parse_by_file(upload_file, './.cache/private_files',
+    return parse_by_file_embedding(upload_file, './.cache/private_files',
                          './.cache/private_embeddings', EmbeddingModel(model_short_name))
 
 

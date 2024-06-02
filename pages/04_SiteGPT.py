@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from components.langchain.callback_handler.streaming_chat_callback_handler import StreamingChatCallBackHandler
 from components.langchain.init_llm import initialize_open_ai_llm
 from components.langchain.init_memory import initialize_conversation_memory
-from components.langchain.site_parser import parse_by_sitemap_xml
+from components.langchain.site_parser import parse_by_sitemap_xml_embedding
 from components.pages.common.chat_message import print_message, print_message_history, print_message_and_save, \
     save_message
 from components.pages.common.session import set_session, get_session
@@ -42,7 +42,7 @@ def find_docs_by_sitemap(url_param: str, url_filter_param: str) -> VectorStoreRe
     if url_filter_param:
         filter_arr.append(fr"^(.*\/{url_filter_param}.*\/)")
 
-    return parse_by_sitemap_xml(url_param, filter_arr)
+    return parse_by_sitemap_xml_embedding(url_param, filter_arr)
 
 
 @st.cache_resource

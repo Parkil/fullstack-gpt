@@ -1,13 +1,13 @@
 import json
 from typing import List
 
-from langchain_community.retrievers import WikipediaRetriever
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 
-from components_old.common.langchain_component import format_docs
-from components_old.quizgpt.json_output_parser import JsonOutputParser
-from components_old.quizgpt.prompt import find_question_prompt, find_formatting_prompt, find_question_function_prompt
+from components.pages.quizgpt.json_output_parser import JsonOutputParser
+from components.pages.quizgpt.prompt import find_question_prompt, find_formatting_prompt, find_question_function_prompt
+from components.types.user_define_type import BindingLLMType
+from components.util.util import format_docs
 
 
 def invoke_question_format_chain(docs: List[Document], llm: ChatOpenAI):
@@ -24,7 +24,7 @@ def invoke_question_format_chain(docs: List[Document], llm: ChatOpenAI):
 
 
 # function call 방식 으로 chain 을 호출할 경우 Parser 를 사용할 수 없다
-def invoke_question_function_chain(docs: List[Document], llm: ChatOpenAI):
+def invoke_question_function_chain(docs: List[Document], llm: BindingLLMType):
     question_prompt = find_question_function_prompt()
 
     chain = {"context": format_docs} | question_prompt | llm
@@ -33,8 +33,3 @@ def invoke_question_function_chain(docs: List[Document], llm: ChatOpenAI):
 
     json_formatted_str = chain_result.additional_kwargs['function_call']['arguments']
     return json.loads(json_formatted_str)
-
-
-def wiki_search(topic: str) -> List[Document]:
-    retriever = WikipediaRetriever(top_k_results=5)
-    return retriever.get_relevant_documents(topic)
