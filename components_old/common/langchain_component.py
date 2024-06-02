@@ -41,7 +41,7 @@ def __embedding_factory(model_type: EmbeddingModel):
     if model_type == EmbeddingModel.OPEN_AI:
         return OpenAIEmbeddings()
     else:
-        return OllamaEmbeddings(model=model_type.model_name)
+        return OllamaEmbeddings(model=model_type.model_full_name)
 
 
 def format_docs(docs):

@@ -10,8 +10,8 @@ from components.langchain.init_llm import initialize_open_ai_llm
 from components.langchain.init_memory import initialize_conversation_memory
 from components.pages.common.chat_message import print_message, print_message_history, print_message_and_save, \
     save_message, clear_message_history
-from components.pages.documentgpt.prompt import find_prompt
-from components_old.common.langchain_component import format_docs
+from components.pages.documentgpt.prompt import find_document_gpt_prompt
+from components.util.util import format_docs
 
 st.set_page_config(
     page_title="DocumentGPT",
@@ -29,15 +29,11 @@ def init_open_ai() -> ChatOpenAI:
     return initialize_open_ai_llm()
 
 
-streaming_llm = init_open_ai_streaming()
-non_streaming_llm = init_open_ai()
-
-
 # ConversationSummaryBufferMemory 에서 요약을 수행 하는 llm 설정에 callback 이 설정 되어 있을 경우
 # 요약 정보를 얻기 위해 llm 을 수행 하면 callback 이 같이 작동 한다
 @st.cache_resource
 def init_memory() -> ConversationSummaryBufferMemory:
-    return initialize_conversation_memory(chat_model=non_streaming_llm,
+    return initialize_conversation_memory(chat_model=init_open_ai(),
                                           memory_key='chat_history', return_messages=True)
 
 
@@ -90,10 +86,11 @@ if file:
         # chain 을 사용 하면
         # template.format_messages(context=docs, question=message) 나 retriever.invoke(message)
         # 같은 중간 단계 로직은 chain 이 실행 되는 과정 에서 자동 으로 실행 된다
-        chain = {
+        chain = ({
                     "context": retriever | RunnableLambda(format_docs),
                     "question": RunnablePassthrough(),
-                } | RunnablePassthrough.assign(chat_history=__load_memory) | find_prompt() | streaming_llm
+                } | RunnablePassthrough.assign(chat_history=__load_memory)
+                  | find_document_gpt_prompt() | init_open_ai_streaming())
 
         with st.chat_message('ai'):
             resp = __invoke_chain(chain, message)

@@ -11,7 +11,7 @@ import streamlit as st
 
 @st.cache_resource()
 def init_llm(param_model: str) -> ChatOllama:
-    __model_name = EmbeddingModel(str(param_model)).model_name
+    __model_name = EmbeddingModel(str(param_model)).model_full_name
 
     print('init_llm : ', __model_name)
     return ChatOllama(temperature=0.1, streaming=True, callbacks=[ChatCallBackHandler()], model=__model_name)

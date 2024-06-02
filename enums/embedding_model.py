@@ -9,8 +9,8 @@ class EmbeddingModel(Enum):
     OLLAMA_FALCON2 = ('falcon2', 'falcon2:latest')
     OLLAMA_WIZARDLM2 = ('wizardlm2', 'wizardlm2:latest')
 
-    def __new__(cls, value, model_name):
+    def __new__(cls, model_short_name, model_full_name):
         obj = object.__new__(cls)
-        obj._value_ = value
-        obj.model_name = model_name
+        obj._value_ = model_short_name
+        obj.model_full_name = model_full_name
         return obj

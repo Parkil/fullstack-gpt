@@ -1,10 +1,18 @@
 import streamlit as st
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.memory import ConversationSummaryBufferMemory
+from langchain_community.chat_models import ChatOllama
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-from components_old.privategpt.streamlit_component import init_llm, init_memory, embed_file_wrapper
-from components_old.privategpt.util import format_docs
-from components_old.streamlit_component import init_session_singleton, send_message, paint_history
+from components.langchain.callback_handler.streaming_chat_callback_handler import StreamingChatCallBackHandler
+from components.langchain.file_parser import parse_by_file
+from components.langchain.init_llm import initialize_ollama_llm
+from components.langchain.init_memory import initialize_conversation_memory
+from components.pages.common.chat_message import print_message, print_message_history, print_message_and_save, \
+    save_message, clear_message_history
+from components.pages.privategpt.prompt import find_private_gpt_prompt
+from components.util.util import format_docs
+from enums.embedding_model import EmbeddingModel
 
 st.set_page_config(
     page_title="PrivateGPT",
@@ -12,6 +20,45 @@ st.set_page_config(
 )
 
 st.title('PrivateGPT')
+
+
+@st.cache_resource
+def init_ollama_ai_streaming(model_short_name: str) -> ChatOllama:
+    print(f'init_ollama_ai_streaming(model_name : {model_short_name})')
+    return initialize_ollama_llm(streaming=True, callbacks=[StreamingChatCallBackHandler()],
+                                 model=EmbeddingModel(model_short_name).model_full_name)
+
+
+@st.cache_resource
+def init_ollama_ai(model_short_name: str) -> ChatOllama:
+    print(f'init_ollama_ai(model_name : {model_short_name})')
+    return initialize_ollama_llm(model=EmbeddingModel(model_short_name).model_full_name)
+
+
+@st.cache_resource
+def init_memory_local(model_short_name: str) -> ConversationSummaryBufferMemory:
+    print(f'init_memory(model_name : {model_short_name})')
+    llm_model = init_ollama_ai(model_short_name)
+    return initialize_conversation_memory(chat_model=llm_model,
+                                          memory_key='chat_history', return_messages=True)
+
+
+# 다른 llm model 로 embedding 된 cache 를 가져 오려고 하면 AssertError 가 발생 한다
+@st.cache_resource(show_spinner="Embedding file...")
+def find_docs_by_file(upload_file: UploadedFile, model_short_name: str):
+    return parse_by_file(upload_file, './.cache/private_files',
+                         './.cache/private_embeddings', EmbeddingModel(model_short_name))
+
+
+def __load_memory(_):
+    return memory.load_memory_variables({})["chat_history"]
+
+
+def __invoke_chain(chain_param, question):
+    chain_result = chain_param.invoke(question)
+    memory.save_context({"input": question}, {"output": chain_result.content})
+    return chain_result
+
 
 st.markdown("""
     Welcome!
@@ -21,32 +68,6 @@ st.markdown("""
     Upload your files on sidebar
 """)
 
-init_session_singleton('messages', [])
-
-prompt = ChatPromptTemplate.from_messages([
-    ("system", """
-        Answer the question using ONLY the following context.
-        If you don't know the answer just say you don't know. DON'T make anything up.
-
-        Context: {context}
-    """),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{question}")
-])
-
-
-def load_memory(input_param):
-    print(memory.load_memory_variables({}))
-    print("""\n\n""")
-    return memory.load_memory_variables({})["chat_history"]
-
-
-def invoke_chain(question):
-    chain_result = chain.invoke(question)
-    memory.save_context({"input": question}, {"output": chain_result.content})
-    return chain_result
-
-
 with st.sidebar:
     file = st.file_uploader("Upload a .txt, or .pdf or .docx file", type=['txt', 'pdf', 'docx'])
 
@@ -55,29 +76,30 @@ with st.sidebar:
             "Select Model",
             ("mistral", "wizardlm2", "falcon2"))
 
+message_group_key = 'private_gpt'
 if file:
-    llm = init_llm(selected_model)
-    memory = init_memory(llm)
+    llm = init_ollama_ai_streaming(selected_model)
+    memory = init_memory_local(selected_model)
 
-    retriever = embed_file_wrapper(file, str(selected_model))
-    send_message('I`m ready! Ask Away', 'ai', save=False)
-    paint_history()
+    retriever = find_docs_by_file(file, str(selected_model))
+
+    print_message('I`m ready! Ask Away', 'ai')
+    print_message_history(message_group_key)
 
     message = st.chat_input("Ask anything about your file")
 
     if message:
-        send_message(message, 'human')
+        print_message_and_save(message_group_key, message, 'human')
 
-        # chain 을 사용 하면
-        # template.format_messages(context=docs, question=message) 나 retriever.invoke(message)
-        # 같은 중간 단계 로직은 chain 이 실행 되는 과정 에서 자동 으로 실행 된다
         chain = {
                     "context": retriever | RunnableLambda(format_docs),
                     "question": RunnablePassthrough(),
-                } | RunnablePassthrough.assign(chat_history=load_memory) | prompt | llm
+                } | RunnablePassthrough.assign(chat_history=__load_memory) | find_private_gpt_prompt() | llm
 
         with st.chat_message('ai'):
-            resp = invoke_chain(message)
+            resp = __invoke_chain(chain, message)
+
+        save_message(message_group_key, resp.content, 'ai')
 
 else:
-    st.session_state['messages'] = []
+    clear_message_history(message_group_key)

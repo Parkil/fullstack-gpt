@@ -15,7 +15,7 @@ def initialize_open_ai_llm(*, temperature: float = 0.1, streaming: bool = False,
 
 
 def initialize_ollama_llm(*, temperature: float = 0.1, streaming: bool = False,
-                          callbacks=None, model: str = 'mistral:latest'):
+                          callbacks=None, model: str = 'mistral:latest') -> ChatOllama:
     if callbacks is None:
         callbacks = []
 
