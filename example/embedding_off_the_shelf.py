@@ -37,10 +37,11 @@ vectorstore = Chroma.from_documents(docs, cache_embeddings)
 
 retriever=vectorstore.as_retriever()
 
-# stuff: 검색된 모든 doc 을 합쳐서 prompt 에 입력
-# refine: 검색된 doc 마다 prompt 를 던져서 답을 얻어 내는 방식
-# map reduce: 검색된 doc 을 각각 요약 해서 prompt 에 입력
-# map re-rank: 검색된 doc 마다 점수를 부여 해서(prompt 에 질문) 가장 높은 점수를 가진 doc 과 관련된 답변을 반환
+# stuff: 여러 document 를 1개로 통합 해서 prompt 에 적재
+# refine: document 를 순서 대로 summary 를 생성 하고 생성된 summary 를 이용 하여 다음 summary 를 생성 하는 식으로 loop 를 돈다
+# ex) doc1 -> summary1 생성 -> doc2 + summary1 을 기반 으로 한 summary2 생성 -> doc3 + summary2 를 기반 으로 summary3 생성 .... 
+# map reduce: 여러 document 마다 각각의 summary 를 생성한 다음 생성된 summaries 를 기반 으로 1개의 summary 를 생성
+# map re-rank: document 나 llm 답변을 평가할 수 있게 하고 이중 평가가 가장 좋은 document 기반 답변 또는 llm 답변을 반환
 embedd_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=vectorstore.as_retriever())
 
 result = embedd_chain.run("Describe Victory Mansions")

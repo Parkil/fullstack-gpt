@@ -6,6 +6,7 @@ from langchain_core.documents import Document
 from langchain_core.vectorstores import VST
 from langchain_openai import OpenAIEmbeddings
 
+from components.common.file_util import make_dirs_if_not_exists
 from enums.embedding_model import EmbeddingModel
 
 
@@ -15,6 +16,8 @@ def in_memory_embedding(docs: list[Document], embedding_model: EmbeddingModel = 
 
 def disk_caching_embedding(docs: list[Document], cache_storage_dir: str,
                            embedding_model: EmbeddingModel = EmbeddingModel.OPEN_AI) -> VST:
+    make_dirs_if_not_exists(cache_storage_dir)
+
     cache_storage = LocalFileStore(cache_storage_dir)
     cache_embeddings = CacheBackedEmbeddings.from_bytes_store(__embedding_factory(embedding_model), cache_storage)
     return FAISS.from_documents(docs, cache_embeddings)

@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from components.langchain.callback_handler.streaming_chat_callback_handler import StreamingChatCallBackHandler
-from components.langchain.file_parser import parse_by_file_embedding
+from components.langchain.file_parser import parse_by_upload_file_and_disk_embedding
 from components.langchain.init_llm import initialize_open_ai_llm
 from components.langchain.init_memory import initialize_conversation_memory
 from components.pages.common.chat_message import print_message, print_message_history, print_message_and_save, \
@@ -44,8 +44,9 @@ memory = init_memory()
 # st.cache_resource : 직렬화 가 불가능한 값 (DB datasource, M/L Model ...) 을 저장할 때 사용
 # function input param 이 변경될 때에만 다시 실행 된다
 @st.cache_resource(show_spinner="Embedding file...")
-def find_docs_by_file(upload_file: UploadedFile):
-    return parse_by_file_embedding(upload_file, './.cache/files', './.cache/embeddings')
+def find_docs_by_upload_file(upload_file: UploadedFile):
+    return parse_by_upload_file_and_disk_embedding(upload_file, './.cache/files',
+                                                   f'./.cache/embeddings/{upload_file.name}')
 
 
 def __load_memory(_):
@@ -74,7 +75,7 @@ with st.sidebar:
 # if file 자체가 일종의 react 의 state 처럼 작동 한다
 message_group_key = 'document_gpt'
 if file:
-    retriever = find_docs_by_file(file)
+    retriever = find_docs_by_upload_file(file)
     print_message('I`m ready! Ask Away', 'ai')
     print_message_history(message_group_key)
 

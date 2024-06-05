@@ -5,7 +5,7 @@ from langchain.callbacks import StreamingStdOutCallbackHandler
 from langchain_core.documents import Document
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-from components.langchain.file_parser import parse_by_file
+from components.langchain.file_parser import parse_by_upload_file
 from components.langchain.init_llm import initialize_open_ai_binding_llm
 from components.langchain.site_parser import parse_by_wiki_topic
 from components.pages.quizgpt.chain import invoke_question_function_chain
@@ -34,7 +34,7 @@ def gen_docs_by_wiki(topic_param: str) -> List[Document]:
 
 @st.cache_resource(show_spinner='Loading File...')
 def gen_docs_by_file(upload_file: UploadedFile) -> List[Document]:
-    return parse_by_file(upload_file, './.cache/quiz_files')
+    return parse_by_upload_file(upload_file, './.cache/quiz_files')
 
 
 @st.cache_resource(show_spinner='Generate Docs...')
