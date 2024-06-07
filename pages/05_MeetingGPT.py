@@ -11,7 +11,8 @@ from components.common.file_util import load_file
 from components.langchain.file_parser import parse_by_file_and_disk_embedding, parse_by_file
 from components.langchain.init_llm import initialize_open_ai_llm
 from components.langchain.video_processing import extract_audio_from_video, cut_audio_in_chunks, transcribe_chunks
-from components.pages.meetinggpt.prompt import find_other_summary_prompt, find_first_summary_prompt, find_qna_prompt
+from components.pages.meetinggpt.prompt import find_other_summary_prompt, find_first_summary_prompt, find_qna_prompt, \
+    find_qna_answer_list_prompt, find_qna_pick_answer_prompt
 from components.util.util import get_file_name_from_path_str, format_docs
 
 st.set_page_config(
@@ -47,6 +48,49 @@ def exec_transcribe(chunks_dir_str: str, dest_path_str: str):
         chunks_dir=chunks_dir_str,
         dest_path=dest_path_str
     )
+
+
+def __invoke_answer_chain(chain_param, question, context):
+    chain_result = chain_param.invoke(
+        {"question": question, "context": context}
+    )
+    print('answer chain result : ', chain_result)
+    return chain_result
+
+
+def __get_answers(inputs):
+    inner_docs = inputs["docs"]
+    question = inputs["question"]
+    answers_chain = find_qna_answer_list_prompt() | init_open_ai()
+
+    return {
+        "question": question,
+        "answers": [
+            {
+                "answer": __invoke_answer_chain(answers_chain, question, inner_doc.page_content),
+                "source": inner_doc.metadata["source"],
+                "date": 'None',
+            } for inner_doc in inner_docs
+        ]
+    }
+
+
+def __pick_answer(inputs):
+    question = inputs["question"]
+    answers = inputs["answers"]
+
+    pick_chain = find_qna_pick_answer_prompt() | init_open_ai()
+
+    condensed = "\n\n".join(f"Answer: {answer['answer']}\nSource: {answer['source']}\ndate: {answer['date']}\n"
+                            for answer in answers)
+    result = pick_chain.invoke({
+        "question": question,
+        "answers": condensed
+    })
+
+    print('pick chain result : ', result)
+
+    return result
 
 
 st.markdown("""
@@ -113,13 +157,21 @@ if video_file:
 
         message = st.text_input("Ask anything about your transcript")
 
-
         if message:
             # case1 stuff chain
-            chain = ({
-                         "context": retriever | RunnableLambda(format_docs),
-                         "question": RunnablePassthrough(),
-                     } | find_qna_prompt() | init_open_ai() | StrOutputParser())
+            # chain = ({
+            #              "context": retriever | RunnableLambda(format_docs),
+            #              "question": RunnablePassthrough(),
+            #          } | find_qna_prompt() | init_open_ai() | StrOutputParser())
+            #
+            # resp = chain.invoke(message)
+            # st.write(resp)
+
+            # case2 map re-rank chain
+            chain = ({"docs": retriever, "question": RunnablePassthrough()}
+                     | RunnableLambda(__get_answers)
+                     | RunnableLambda(__pick_answer)
+                     | StrOutputParser())
 
             resp = chain.invoke(message)
             st.write(resp)
