@@ -2,7 +2,6 @@ import os.path
 
 import streamlit as st
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_openai import ChatOpenAI
 from streamlit.runtime.uploaded_file_manager import UploadedFile
@@ -11,9 +10,9 @@ from components.common.file_util import load_file
 from components.langchain.file_parser import parse_by_file_and_disk_embedding, parse_by_file
 from components.langchain.init_llm import initialize_open_ai_llm
 from components.langchain.video_processing import extract_audio_from_video, cut_audio_in_chunks, transcribe_chunks
-from components.pages.meetinggpt.prompt import find_other_summary_prompt, find_first_summary_prompt, find_qna_prompt, \
+from components.pages.meetinggpt.prompt import find_other_summary_prompt, find_first_summary_prompt, \
     find_qna_answer_list_prompt, find_qna_pick_answer_prompt
-from components.util.util import get_file_name_from_path_str, format_docs
+from components.util.util import get_file_name_from_path_str
 
 st.set_page_config(
     page_title="MeetingGPT",
