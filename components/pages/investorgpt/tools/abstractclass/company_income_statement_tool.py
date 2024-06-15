@@ -1,4 +1,6 @@
 import os
+from abc import ABC
+
 import requests
 from typing import Type, Any
 from pydantic import BaseModel, Field
@@ -12,7 +14,7 @@ class CompanyIncomeStatementToolArgsSchema(BaseModel):
 
 
 # 회사의 손익 계산서
-class CompanyIncomeStatementTool(BaseTool):
+class CompanyIncomeStatementTool(BaseTool, ABC):
     name = "CompanyIncomeStatementTool"
     description = """
     Use this to get the income statement of a company.
@@ -20,7 +22,3 @@ class CompanyIncomeStatementTool(BaseTool):
     """
     args_schema: Type[CompanyIncomeStatementToolArgsSchema] = CompanyIncomeStatementToolArgsSchema
 
-    def _run(self, symbol) -> Any:
-        result = requests.get(
-            f'https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol={symbol}&apikey={alpha_vantage_api_key}')
-        return result.json()['annualReports']

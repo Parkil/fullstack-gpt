@@ -1,4 +1,5 @@
 import os
+from abc import ABC
 
 import requests
 from typing import Type, Any
@@ -13,7 +14,7 @@ class CompanyOverViewToolArgsSchema(BaseModel):
 
 
 # 회사의 요약 정보
-class CompanyOverViewTool(BaseTool):
+class CompanyOverViewTool(BaseTool, ABC):
     name = "CompanyOverViewTool"
     description = """
     Use this to get an overview of the financials of the company.
@@ -21,7 +22,4 @@ class CompanyOverViewTool(BaseTool):
     """
     args_schema: Type[CompanyOverViewToolArgsSchema] = CompanyOverViewToolArgsSchema
 
-    def _run(self, symbol) -> Any:
-        result = requests.get(
-            f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={alpha_vantage_api_key}')
-        return result.json()
+

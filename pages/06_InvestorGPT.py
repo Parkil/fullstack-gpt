@@ -3,11 +3,8 @@ from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain_openai import ChatOpenAI
 
 from components.langchain.init_llm import initialize_open_ai_llm
+from components.pages.investorgpt.constants.constants import ALPHA_VANTAGE_TOOLS
 from components.pages.investorgpt.prompt import find_open_ai_function_prompt
-from components.pages.investorgpt.tools.company_income_statement_tool import CompanyIncomeStatementTool
-from components.pages.investorgpt.tools.company_over_view_tool import CompanyOverViewTool
-from components.pages.investorgpt.tools.company_weekly_series_tool import CompanyTimeSeriesWeeklyTool
-from components.pages.investorgpt.tools.stock_market_symbol_tool import StockMarketSymbolSearchTool
 
 
 @st.cache_resource
@@ -17,27 +14,17 @@ def init_open_ai() -> ChatOpenAI:
 
 @st.cache_resource
 def init_agent() -> AgentExecutor:
-    tools = [
-        StockMarketSymbolSearchTool(),
-        CompanyOverViewTool(),
-        CompanyIncomeStatementTool(),
-        CompanyTimeSeriesWeeklyTool(),
-    ]
-
-    stock_agent = create_openai_functions_agent(llm=init_open_ai(), tools=tools, prompt=find_open_ai_function_prompt())
-    return AgentExecutor(agent=stock_agent, tools=tools, verbose=True)
+    # langchain 0.2 소스
+    stock_agent = create_openai_functions_agent(llm=init_open_ai(), tools=ALPHA_VANTAGE_TOOLS,
+                                                prompt=find_open_ai_function_prompt())
+    return AgentExecutor(agent=stock_agent, tools=ALPHA_VANTAGE_TOOLS, verbose=True)
 
     # langchain 0.1 소스
     # return initialize_agent(
     #     llm=init_open_ai(),
     #     verbose=True,
     #     agent=AgentType.OPENAI_FUNCTIONS,
-    #     tools=[
-    #         StockMarketSymbolSearchTool(),
-    #         CompanyOverViewTool(),
-    #         CompanyIncomeStatementTool(),
-    #         CompanyTimeSeriesWeeklyTool(),
-    #     ],
+    #     tools=tools,
     #     agent_kwargs={
     #         "system_message": SystemMessage(content="""
     #         You are a hedge fund manager.
