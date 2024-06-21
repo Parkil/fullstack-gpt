@@ -43,8 +43,9 @@ user_token_db = {
 
 
 # queryString 의 key=value 값의 key 를 바로 파라 메터로 받을 수 있다
-@app.get("/auth", response_class=HTMLResponse)
-def auth(client_id: str, redirect_uri: str, state: str):
+# include_in_schema : openapi.doc 에 포함할 지 여부
+@app.get("/auth", response_class=HTMLResponse, include_in_schema=False)
+def auth(redirect_uri: str, state: str):
     return f"""
     <html>
         <head>
@@ -58,7 +59,7 @@ def auth(client_id: str, redirect_uri: str, state: str):
     """
 
 
-@app.post("/token")
+@app.post("/token", include_in_schema=False)
 def token(code=Form(...)):
     print(code)
     return {
