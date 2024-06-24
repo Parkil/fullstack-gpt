@@ -1,40 +1,54 @@
-from typing import Any
+import os
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Body, Form
 from pydantic import BaseModel, Field
 from starlette.responses import HTMLResponse
+from pinecone import Pinecone
+from langchain_pinecone import PineconeVectorStore
+from langchain_openai import OpenAIEmbeddings
+
+load_dotenv()
+
+pc = Pinecone(
+    api_key=os.getenv("PINECONE_API_KEY")
+)
+
+embeddings = OpenAIEmbeddings()
+vector_store = PineconeVectorStore.from_existing_index("recipes", embeddings)
 
 app = FastAPI(
-    title="Nicolacus Maximus Stuttering Giver",
-    description="Get a real Shuttering by Nicolacus Maximus himself",
+    title="ChefGPT. The best provider of Indian Recipes in the world",
+    description="Give ChefGPT a couple of ingredients and it will give you recipes in return",
     servers=[
-        {"url": "https://sea-jeffrey-nodes-surveys.trycloudflare.com"}
+        {"url": "https://firms-touch-charles-collectibles.trycloudflare.com"}
     ]
 )
 
 
-class StutteringModel(BaseModel):
-    shuttering: str = Field(description="The stuttering that Nicolacus Maximus said")
-    year: int = Field(description="The year when Nicolacus Maximus said the stuttering")
+class Document(BaseModel):
+    page_content: str
 
 
 # uvicorn main:app --reload
 # cloudflared tunnel --url http://127.0.0.1:8000 - localhost 를 외부 ssl 서버로 redirect
 # windows 에서는 변경 사항이 정상적으로 적용되지 않는 경우가 있다 이경우에는 python 을 강제 종료하고 다시 시작하면 정상적으로 작동됨
 # chatgpt oauth client_id: client123, client_secret: secret123 auth_url: /auth token_url: /token
-@app.get("/stuttering",
-         summary="Returns a random stuttering by Nicolacus Maximus himself",
-         description="Upon receiving a GET request this endpoint will return a real shuttering said by"
-                     " Nicolacus Maximus himself",
-         response_description="A shuttering object that contains the quote said by"
-                              " Nicolacus Maximus and the date when the shuttering was said",
-         response_model=StutteringModel)
-def get_stuttering(request: Request):
-    print(request.headers)
-    return {
-        "shuttering": "Life is short so eat it all!",
-        "year": 1500,
-    }
+# https://firms-touch-charles-collectibles.trycloudflare.com/openapi.json
+@app.get(
+    "/recipes",
+    summary="Returns a list of recipes.",
+    description="Upon receiving an ingredient, this endpoint will return a list of recipes that contain that "
+                "ingredient.",
+    response_description="A Document object that contains the recipe and preparation instructions",
+    response_model=list[Document],
+    openapi_extra={
+        "x-openai-isConsequential": False,
+    },
+)
+def get_recipe(ingredient: str):
+    docs = vector_store.similarity_search(ingredient)
+    return docs
 
 
 user_token_db = {

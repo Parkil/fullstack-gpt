@@ -1,10 +1,14 @@
 import streamlit as st
+from dotenv import load_dotenv
 from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain_openai import ChatOpenAI
 
 from components.langchain.init_llm import initialize_open_ai_llm
 from components.pages.investorgpt.constants.constants import ALPHA_VANTAGE_TOOLS
 from components.pages.investorgpt.prompt import find_open_ai_function_prompt
+
+# env 에 langsmith project name 이 설정 되지 않으면 langsmith 가 수집 되지 않는다
+load_dotenv()
 
 
 @st.cache_resource
