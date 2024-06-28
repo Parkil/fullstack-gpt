@@ -88,12 +88,12 @@ jsonschema-specifications==2023.7.1
 jupyter_client==8.3.1
 jupyter_core==5.3.1
 kiwisolver==1.4.5
-langchain==0.2.3
-langchain-openai==0.1.8
-langchain-community==0.2.4
+langchain==0.2.5
+langchain-openai==0.1.9
+langchain-community==0.2.5
 langcodes==3.3.0
-langsmith==0.1.53
-langgraph==0.0.65
+langsmith==0.1.82
+langgraph==0.1.1
 layoutparser==0.3.4
 loguru==0.7.2
 lxml==4.9.3
@@ -120,7 +120,7 @@ olefile==0.46
 omegaconf==2.3.0
 onnx==1.16.0
 onnxruntime==1.17.3
-openai==1.33.0
+openai==1.35.3
 opencv-python==4.10.0.82
 openpyxl==3.1.2
 orjson==3.10.4
