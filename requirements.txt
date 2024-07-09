@@ -13,7 +13,7 @@ backcall==0.2.0
 backoff==2.2.1
 bcrypt==4.0.1
 beautifulsoup4==4.12.2
-black==23.9.1
+black==24.3.0
 blinker==1.6.2
 blis==0.7.10
 Brotli==1.1.0
@@ -71,7 +71,7 @@ httpx==0.25.0
 huggingface-hub==0.23.0
 humanfriendly==10.0
 hyperframe==6.0.1
-idna==3.4
+idna==3.7
 importlib-metadata==6.8.0
 importlib-resources==6.0.1
 iopath==0.1.10
@@ -85,14 +85,16 @@ jsonpatch==1.33
 jsonpointer==2.4
 jsonschema==4.19.0
 jsonschema-specifications==2023.7.1
-jupyter_client==8.3.1
-jupyter_core==5.3.1
+jupyter_client==8.6.2
+jupyter_core==5.7.2
 kiwisolver==1.4.5
 langchain==0.2.5
-langchain-openai==0.1.9
 langchain-community==0.2.5
+langchain-core==0.2.11
+langchain-openai==0.1.9
+langchain-text-splitters==0.2.2
 langcodes==3.3.0
-langsmith==0.1.82
+langsmith==0.1.83
 langgraph==0.1.1
 layoutparser==0.3.4
 loguru==0.7.2
@@ -120,7 +122,7 @@ olefile==0.46
 omegaconf==2.3.0
 onnx==1.16.0
 onnxruntime==1.17.3
-openai==1.35.3
+openai==1.35.10
 opencv-python==4.10.0.82
 openpyxl==3.1.2
 orjson==3.10.4
@@ -136,8 +138,8 @@ pdfplumber==0.10.2
 pexpect==4.8.0
 pickleshare==0.7.5
 Pillow==10.0.1
-pinecone==4.0.0
-pinecone-client==4.0.0
+pinecone
+pinecone-client
 langchain-pinecone==0.1.1
 platformdirs==3.10.0
 playwright==1.39.0
@@ -153,8 +155,8 @@ pure-eval==0.2.2
 pyarrow==14.0.1
 pycocotools==2.0.7
 pycparser==2.21
-pydantic==1.10.12
-pydantic_core==2.6.3
+pydantic==2.8.2
+pydantic_core==2.20.1
 pydeck==0.8.0
 pydub==0.25.1
 pyee==11.0.1
@@ -168,7 +170,7 @@ PyPika==0.48.9
 pytesseract==0.3.10
 python-dateutil==2.8.2
 python-docx==0.8.11
-python-dotenv==1.0.0
+python-dotenv==1.0.1
 python-iso639==2023.6.15
 python-magic==0.4.27
 python-multipart==0.0.7
@@ -248,3 +250,4 @@ html5lib==1.1
 multitasking==0.0.11
 peewee==3.17.5
 yfinance==0.2.40
+crewai==0.36.0
